@@ -23,34 +23,59 @@ MAIN_MENU() {
   # if it doesn't exist
   if [[ -z $SERVICE_ID ]]
   then
-    MAIN_MENU "Think again"
+    MAIN_MENU "I could not find that service. What would you like today?"
+  
+  # if valid
   else
+
     echo -e "\nPlease enter your phone number."
 
     read CUSTOMER_PHONE
+    # get phone number from database
+    PHONE_NUMBER=$($PSQL "SELECT phone FROM customers WHERE phone='$CUSTOMER_PHONE'")
 
-    # ** Sanitize Phone Number **
-      # removes spaces, dashes and brackets
-    CLEAN_NUMBER=$(echo "$CUSTOMER_PHONE" | sed -E 's/-//g; s/\(//g; s/\)//g; s/^ *| *$//g; s/ *//g')
-    
-    # ** Check for A Valid US Phone Number **
-      # checks the sanitized phone number against ten digits 
-      # US country code not supported
-    if [[ ! $CLEAN_NUMBER =~ ^[0-9]{10}$ ]]
-    then
-      # if not valid
-      echo -e "This is not a valid US phone number\nThe phone number has to have one of the following number formats: \nXXXXXXXXXX\nXXX-XXX-XXXX\n(XXX)XXX-XXXX"
+    # get service name
+    SERVICE_NAME=$($PSQL "SELECT name FROM services WHERE service_id=$SERVICE_ID")
+
+    if [[ -z $PHONE_NUMBER ]]
+    # if it doesn't exist
+    then         
+      echo -e "\nI don't have a record for that phone number. What's your name?"
+
+      read CUSTOMER_NAME
+
+      # insert customer into database
+      INSERT_CUSTOMER_RESULT=$($PSQL "INSERT INTO customers(phone, name) VALUES('$CUSTOMER_PHONE', '$CUSTOMER_NAME')")
+
+
+      echo -e "\nWhat time would you like your $SERVICE_NAME, $CUSTOMER_NAME?"
+
+      read SERVICE_TIME
+
+      echo -e "\nI have put you down for a $SERVICE_NAME at $SERVICE_TIME, $CUSTOMER_NAME."
+
+      # get customer_id
+      CUSTOMER_ID=$($PSQL "SELECT customer_id FROM customers WHERE phone='$CUSTOMER_PHONE'")
+
+      # insert appointment
+      INSERT_APPOINTMENT_RESULT=$($PSQL "INSERT INTO appointments(customer_id, service_id, time) VALUES($CUSTOMER_ID, $SERVICE_ID, '$SERVICE_TIME')")
+      echo $INSERT_APPOINTMENT_RESULT 
     else
-      # if valid
-      echo "This is a valid US phone number."
-    
+      # get cusomter name
+      CUSTOMER_NAME=$($PSQL "SELECT name FROM customers WHERE phone='$CUSTOMER_PHONE'")
+
+      echo -e "\nWhat time would you like your $SERVICE_NAME, $CUSTOMER_NAME?"
+
+      read SERVICE_TIME
+
+      echo -e "\nI have put you down for a $SERVICE_NAME at $SERVICE_TIME, $CUSTOMER_NAME."
+
+      # insert appointment
+      INSERT_APPOINTMENT_RESULT=$($PSQL "INSERT INTO appointments(customer_id, service_id, time) VALUES($CUSTOMER_ID, $SERVICE_ID, '$SERVICE_TIME')")
+      echo $INSERT_APPOINTMENT_RESULT 
+
     fi
   fi
 }
 
-
-
-
-
 MAIN_MENU
-
